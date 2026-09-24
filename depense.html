@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mes dépenses</title>
+<style>
+:root{--bg:#f2f4f3;--ink:#142321;--muted:#5d6f6b;--money:#0b6b57;--money-ink:#fff;--rule:#d3dbd8;--field:#fff;--danger:#b8402b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a18;--ink:#e6efec;--muted:#93a8a3;--money:#5fd0b0;--money-ink:#0f1a18;--rule:#2a3b37;--field:#162623;--danger:#ff8a72}}
+:root[data-theme="dark"]{--bg:#0f1a18;--ink:#e6efec;--muted:#93a8a3;--money:#5fd0b0;--money-ink:#0f1a18;--rule:#2a3b37;--field:#162623;--danger:#ff8a72}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:520px;margin:0 auto;padding:20px 18px 40px}
+h1{font-size:1rem;font-weight:600;color:var(--muted);margin:0}
+.total{font:600 3rem/1.1 Georgia,"Iowan Old Style","Times New Roman",serif;margin:6px 0 2px;color:var(--money);letter-spacing:-.02em}
+.sous{color:var(--muted);margin:0 0 22px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+form .large{grid-column:1/-1}
+input,select,button{font:inherit;color:var(--ink);border-radius:10px;border:1px solid var(--rule);background:var(--field);padding:12px;min-height:46px;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--money);outline-offset:2px}
+button.ajout{background:var(--money);color:var(--money-ink);border-color:var(--money);font-weight:600;cursor:pointer}
+#erreur{grid-column:1/-1;margin:0;color:var(--danger);min-height:1.2em;font-size:.95rem}
+.barre{display:flex;align-items:center;gap:12px;margin:22px 0 4px}
+.barre label{color:var(--muted);white-space:nowrap}
+ul{list-style:none;margin:0;padding:0}
+li{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule)}
+.desc{display:block;font-weight:600;overflow-wrap:anywhere}
+.date{color:var(--muted);font-size:.9rem;margin-right:10px}
+.cat{color:var(--money);font-size:.9rem}
+.prix{font-variant-numeric:tabular-nums;font-weight:600}
+.suppr{width:auto;min-width:46px;background:transparent;color:var(--muted);cursor:pointer}
+.suppr.confirme{color:var(--danger);border-color:var(--danger);font-weight:600}
+#vide{color:var(--muted);padding:26px 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Mes dépenses</h1>
+  <p class="total" id="total">0,00 €</p>
+  <p class="sous" id="sous">Ajoute ta première dépense ci-dessous.</p>
+
+  <form id="ajout-form" autocomplete="off">
+    <input id="montant" class="large" inputmode="decimal" placeholder="Montant en euros (ex. 12,50)" aria-label="Montant">
+    <select id="cat" aria-label="Catégorie"></select>
+    <input id="desc" placeholder="Description" aria-label="Description">
+    <button class="ajout large" type="submit">Ajouter la dépense</button>
+    <p id="erreur" role="alert"></p>
+  </form>
+
+  <div class="barre">
+    <label for="filtre">Afficher</label>
+    <select id="filtre"></select>
+  </div>
+  <ul id="liste"></ul>
+  <p id="vide" hidden>Aucune dépense dans cette catégorie.</p>
+</main>
+
+<script>
+var CATS = ["Nourriture", "Transport", "Loisirs", "Logement", "Autre"];
+var CLE = "depenses";
+var attente = -1;
+
+function charger() {
+  try { var t = localStorage.getItem(CLE); return t ? JSON.parse(t) : []; }
+  catch (e) { return []; }
+}
+function sauver() {
+  try { localStorage.setItem(CLE, JSON.stringify(depenses)); } catch (e) {}
+}
+var depenses = charger();
+
+function $(id) { return document.getElementById(id); }
+function euro(n) { return n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" }); }
+function remplir(sel, liste) {
+  liste.forEach(function (c) {
+    var o = document.createElement("option");
+    o.value = c; o.textContent = c; sel.appendChild(o);
+  });
+}
+remplir($("cat"), CATS);
+remplir($("filtre"), ["Toutes"].concat(CATS));
+
+function afficher() {
+  var filtre = $("filtre").value, ul = $("liste"), total = 0, n = 0;
+  ul.textContent = "";
+  for (var i = depenses.length - 1; i >= 0; i--) {
+    (function (i) {
+      var d = depenses[i];
+      if (filtre !== "Toutes" && d.categorie !== filtre) return;
+      n++; total += d.montant;
+      var li = document.createElement("li");
+      var info = document.createElement("div");
+      var t = document.createElement("span"); t.className = "desc"; t.textContent = d.description || d.categorie;
+      var dt = document.createElement("span"); dt.className = "date"; dt.textContent = d.date;
+      var c = document.createElement("span"); c.className = "cat"; c.textContent = d.categorie;
+      info.append(t, dt, c);
+      var p = document.createElement("span"); p.className = "prix"; p.textContent = euro(d.montant);
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "suppr" + (attente === i ? " confirme" : "");
+      b.textContent = attente === i ? "Supprimer ?" : "✕";
+      b.setAttribute("aria-label", "Supprimer cette dépense");
+      b.onclick = function () {
+        if (attente === i) { depenses.splice(i, 1); attente = -1; sauver(); }
+        else { attente = i; }
+        afficher();
+      };
+      li.append(info, p, b);
+      ul.appendChild(li);
+    })(i);
+  }
+  $("vide").hidden = n > 0 || depenses.length === 0;
+  $("total").textContent = euro(total);
+  $("sous").textContent = depenses.length === 0
+    ? "Ajoute ta première dépense ci-dessous."
+    : n + (n > 1 ? " dépenses" : " dépense") + (filtre === "Toutes" ? " au total" : " en " + filtre);
+}
+
+$("ajout-form").addEventListener("submit", function (ev) {
+  ev.preventDefault();
+  var v = parseFloat($("montant").value.replace(",", "."));
+  if (isNaN(v) || v <= 0) {
+    $("erreur").textContent = "Entre un montant supérieur à 0, par exemple 12,50.";
+    return;
+  }
+  $("erreur").textContent = "";
+  depenses.push({
+    montant: v,
+    categorie: $("cat").value,
+    description: $("desc").value.trim(),
+    date: new Date().toLocaleDateString("sv-SE")
+  });
+  sauver();
+  $("montant").value = ""; $("desc").value = "";
+  attente = -1;
+  afficher();
+});
+$("filtre").addEventListener("change", function () { attente = -1; afficher(); });
+
+afficher();
+</script>
+</body>
+</html>
