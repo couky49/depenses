@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mes dépenses</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="js/app.js" defer></script>
+</head>
+<body>
+<main>
+  <section id="vue-auth" hidden>
+    <h1>Mes dépenses</h1>
+    <p class="titre-auth">Connecte-toi pour ouvrir ta page</p>
+    <p class="sous">Entre l'identifiant et le mot de passe qu'on t'a donnés.</p>
+    <form id="auth-form" autocomplete="on">
+      <input id="login" class="large" autocomplete="username" autocapitalize="none" placeholder="Identifiant" aria-label="Identifiant" required>
+      <input id="mdp" class="large" type="password" autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe" required>
+      <button class="principal large" type="submit">Se connecter</button>
+      <p id="msg-auth" class="msg" role="alert"></p>
+    </form>
+  </section>
+
+  <section id="vue-app" hidden>
+    <div class="haut">
+      <h1>Mes dépenses</h1>
+      <span id="qui"></span>
+      <button id="btn-sortir" class="discret" type="button">Se déconnecter</button>
+    </div>
+    <p class="total" id="total">0,00 €</p>
+    <p class="sous" id="sous">Ajoute ta première dépense ci-dessous.</p>
+
+    <form id="ajout-form" autocomplete="off">
+      <input id="montant" class="large" inputmode="decimal" placeholder="Montant en euros (ex. 12,50)" aria-label="Montant">
+      <select id="cat" aria-label="Catégorie"></select>
+      <input id="desc" placeholder="Description" aria-label="Description">
+      <button class="principal large" type="submit">Ajouter la dépense</button>
+      <p id="erreur" class="msg" role="alert"></p>
+    </form>
+
+    <div class="barre">
+      <label for="filtre">Afficher</label>
+      <select id="filtre"></select>
+    </div>
+    <ul id="liste"></ul>
+    <p id="vide" hidden>Aucune dépense dans cette catégorie.</p>
+  </section>
+</main>
+</body>
+</html>
